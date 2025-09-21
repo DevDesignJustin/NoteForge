@@ -27,44 +27,46 @@ import {
 import { signInUser } from "@/server/users";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 
 const formSchema = z.object({
-  email: z.email(),
   password: z.string().min(8),
+  confirmPassword: z.string().min(8),
 });
-export function LoginForm({
+export function ResetPasswordForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter();
+
+  const searchParams = useSearchParams()
+  const token = searchParams.get("token")
   const [isLoading, setIsLoading] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
       password: "",
+      confirmPassword: ""
     },
   });
 
-  const signIn = async () => {
-     await authClient.signIn.social({
-        provider: "google",
-        callbackURL: "/dashboard"
-     });
-  };
-
   // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof formSchema>) {
+
     try {
       setIsLoading(true);
-      const response = await signInUser(values.email, values.password);
-      if (response.success) {
-        toast.success(response.message);
-        router.push("/dashboard");
+
+      if (values.password !== values.confirmPassword) {
+        toast.error("Passwords do not match")
+        return;
+      }
+      const {error} = await authClient.resetPassword({newPassword: values.password, token: token ?? "",});
+      if (!error) {
+        toast.success("Passwork reset successfuly");
+        router.push("/login");
       } else {
-        toast.error(response.message);
+        toast.error(error.message);
       }
     } catch (error) {
       console.error(error);
@@ -76,9 +78,9 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle>Login to your account</CardTitle>
+          <CardTitle>Reset your password</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Enter your new password below to reset to your password
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -88,12 +90,13 @@ export function LoginForm({
                 <div className="grid gap-3">
                   <FormField
                     control={form.control}
-                    name="email"
+                    name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                          <FormLabel>Password</FormLabel>
+
                         <FormControl>
-                          <Input placeholder="m@example.com" {...field} />
+                          <Input type="password" placeholder="********" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -103,18 +106,11 @@ export function LoginForm({
                 <div className="grid gap-3">
                   <FormField
                     control={form.control}
-                    name="password"
+                    name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex items-center">
-                          <FormLabel>Password</FormLabel>
-                          <Link
-                            href="/forgot-password"
-                            className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                          >
-                            Forgot your password?
-                          </Link>
-                        </div>
+                          <FormLabel>Confirm Password</FormLabel>
+
                         <FormControl>
                           <Input type="password" placeholder="********" {...field} />
                         </FormControl>
@@ -125,11 +121,9 @@ export function LoginForm({
                 </div>
                 <div className="flex flex-col gap-3">
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="size-4 animate-spin" /> : "Login"}
+                    {isLoading ? <Loader2 className="size-4 animate-spin" /> : "Reset Password"}
                   </Button>
-                  <Button variant="outline" className="w-full" onClick={signIn} type="button">
-                    Login with Google
-                  </Button>
+  
                 </div>
               </div>
               <div className="mt-4 text-center text-sm">
