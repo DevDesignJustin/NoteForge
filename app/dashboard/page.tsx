@@ -1,12 +1,13 @@
 
 import { Logout } from "@/components/logout";
+import { PageWrapper } from "@/components/page-wrapper";
 
 const page = () => {
   return (
-    <div>
+    <PageWrapper breadcrumbs={[{label: "Dashboard", href: "/dashboard"}]}>
         <h1>Dashboard</h1>
         <Logout />
-    </div>
+    </PageWrapper>
   )
 }
 
